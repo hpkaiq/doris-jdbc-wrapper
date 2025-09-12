@@ -2,7 +2,6 @@ package io.github.hpkaiq.dorisjdbc;
 
 
 import java.sql.*;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -75,7 +74,7 @@ public class DorisConnection implements Connection {
 
     @Override
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        return Collections.emptyMap();
+        return delegate.getTypeMap();
     }
 
     @Override
