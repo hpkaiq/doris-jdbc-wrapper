@@ -20,8 +20,8 @@ public class TypeMapper {
         if (t.startsWith("float")) return Types.FLOAT;
         if (t.startsWith("double")) return Types.DOUBLE;
         if (t.startsWith("decimal")) return Types.DECIMAL;
-        if (t.startsWith("date")) return Types.DATE;
         if (t.startsWith("datetime")) return Types.TIMESTAMP;
+        if (t.startsWith("date")) return Types.DATE;
         if (t.startsWith("text")) return Types.LONGVARCHAR;
         if (t.startsWith("array")) return Types.ARRAY;
         if (t.startsWith("json")) return Types.STRUCT;
@@ -34,8 +34,8 @@ public class TypeMapper {
         if (t.startsWith("smallint")) return 5;
         if (t.startsWith("int")) return 10;
         if (t.startsWith("bigint")) return 19;
-        if (t.startsWith("date")) return  10;
         if (t.startsWith("datetime")) return 19;
+        if (t.startsWith("date")) return  10;
         if (t.startsWith("boolean")) return  1;
         if (t.startsWith("json") || t.startsWith("text")) return 1048576;
 
@@ -58,6 +58,12 @@ public class TypeMapper {
         if (dorisType == null) return null;
         return dorisType.replaceAll("\\(.*?\\)", "")
                 .replaceAll("v\\d+$", "");
+    }
+
+    public static boolean isCharType(String dorisType) {
+        if (dorisType == null) return false;
+        String t = dorisType.toLowerCase(Locale.ROOT);
+        return t.startsWith("char") || t.startsWith("varchar") || t.startsWith("string") || t.startsWith("text");
     }
 
     public static int extractNullAble(String nullabilityInfo) {

@@ -38,6 +38,7 @@ class DorisDatabaseMetaData implements DatabaseMetaData {
         for (int i = 0; i < cols.length; i++) {
             int colIndex = i + 1;
             meta.setColumnName(colIndex, cols[i]);
+            meta.setColumnLabel(colIndex, cols[i]); // DataGrip 通过 getColumnLabel 构建列映射
             meta.setColumnType(colIndex, java.sql.Types.VARCHAR); // 默认给 VARCHAR，避免 NPE
             meta.setNullable(colIndex, ResultSetMetaData.columnNullable);
         }
@@ -124,10 +125,32 @@ class DorisDatabaseMetaData implements DatabaseMetaData {
         String query = String.format("show full columns from `%s`.`%s`.`%s`", useCatalog, schemaPattern, tableNamePattern);
         ResultSet rs = st.executeQuery(query);
         CachedRowSet crs = RowSetProvider.newFactory().createCachedRowSet();
+        // JDBC 规范要求 getColumns() 返回以下 24 列，且顺序严格一致
         crs.setMetaData(buildMeta(
-                "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
-                "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "DECIMAL_DIGITS", "COLUMN_DEF",
-                "IS_NULLABLE", "NULLABLE", "REMARKS", "ORDINAL_POSITION"
+                "TABLE_CAT",           // 1
+                "TABLE_SCHEM",         // 2
+                "TABLE_NAME",          // 3
+                "COLUMN_NAME",         // 4
+                "DATA_TYPE",           // 5
+                "TYPE_NAME",           // 6
+                "COLUMN_SIZE",         // 7
+                "BUFFER_LENGTH",       // 8 (未使用)
+                "DECIMAL_DIGITS",      // 9
+                "NUM_PREC_RADIX",      // 10
+                "NULLABLE",            // 11
+                "REMARKS",             // 12
+                "COLUMN_DEF",          // 13
+                "SQL_DATA_TYPE",       // 14 (未使用)
+                "SQL_DATETIME_SUB",    // 15 (未使用)
+                "CHAR_OCTET_LENGTH",   // 16
+                "ORDINAL_POSITION",    // 17
+                "IS_NULLABLE",         // 18
+                "SCOPE_CATALOG",       // 19
+                "SCOPE_SCHEMA",        // 20
+                "SCOPE_TABLE",         // 21
+                "SOURCE_DATA_TYPE",    // 22
+                "IS_AUTOINCREMENT",    // 23
+                "IS_GENERATEDCOLUMN"   // 24
         ));
         int pos = 1;
         while (rs.next()) {
@@ -142,20 +165,34 @@ class DorisDatabaseMetaData implements DatabaseMetaData {
             int scale = TypeMapper.extractScale(dorisType);
             int nullableType = TypeMapper.extractNullAble(nullable);
             String typeName = TypeMapper.baseTypeName(dorisType);
+            String isNullable = "YES".equalsIgnoreCase(nullable) ? "YES" : "NO";
+            int charOctetLength = TypeMapper.isCharType(dorisType) ? columnSize : 0;
+
             crs.moveToInsertRow();
-            crs.updateString("TABLE_CAT", useCatalog);
-            crs.updateString("TABLE_SCHEM", schemaPattern);
-            crs.updateString("TABLE_NAME", tableNamePattern);
-            crs.updateString("COLUMN_NAME", colName);
-            crs.updateInt("DATA_TYPE", jdbcType);
-            crs.updateString("TYPE_NAME", typeName);
-            crs.updateInt("COLUMN_SIZE", columnSize);
-            crs.updateInt("DECIMAL_DIGITS", scale);
-            crs.updateString("COLUMN_DEF", defVal);
-            crs.updateString("IS_NULLABLE", nullable);
-            crs.updateInt("NULLABLE", nullableType);
-            crs.updateString("REMARKS", comment);
-            crs.updateInt("ORDINAL_POSITION", pos++);
+            crs.updateString("TABLE_CAT", useCatalog);             // 1
+            crs.updateString("TABLE_SCHEM", schemaPattern);        // 2
+            crs.updateString("TABLE_NAME", tableNamePattern);      // 3
+            crs.updateString("COLUMN_NAME", colName);              // 4
+            crs.updateInt("DATA_TYPE", jdbcType);                  // 5
+            crs.updateString("TYPE_NAME", typeName);               // 6
+            crs.updateInt("COLUMN_SIZE", columnSize);              // 7
+            // BUFFER_LENGTH (8) - 留空
+            crs.updateInt("DECIMAL_DIGITS", scale);                // 9
+            crs.updateInt("NUM_PREC_RADIX", 10);                   // 10
+            crs.updateInt("NULLABLE", nullableType);               // 11
+            crs.updateString("REMARKS", comment);                  // 12
+            crs.updateString("COLUMN_DEF", defVal);                // 13
+            // SQL_DATA_TYPE (14) - 留空
+            // SQL_DATETIME_SUB (15) - 留空
+            crs.updateInt("CHAR_OCTET_LENGTH", charOctetLength);   // 16
+            crs.updateInt("ORDINAL_POSITION", pos++);              // 17
+            crs.updateString("IS_NULLABLE", isNullable);           // 18
+            // SCOPE_CATALOG (19) - 留空
+            // SCOPE_SCHEMA (20) - 留空
+            // SCOPE_TABLE (21) - 留空
+            // SOURCE_DATA_TYPE (22) - 留空
+            crs.updateString("IS_AUTOINCREMENT", "");              // 23
+            crs.updateString("IS_GENERATEDCOLUMN", "");            // 24
             crs.insertRow();
             crs.moveToCurrentRow();
         }
